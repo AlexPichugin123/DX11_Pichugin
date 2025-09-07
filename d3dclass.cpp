@@ -124,6 +124,7 @@ bool D3DClass::Initialize(int screenWidth, int screenHeight, bool vsync, HWND hw
 		return false;
 	}
 
+
 	// Release the display mode list.
 	delete[] displayModeList;
 	displayModeList = 0;
