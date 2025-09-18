@@ -56,6 +56,7 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc;
 	D3D11_SUBRESOURCE_DATA vertexData, indexData;
 	HRESULT result;
+	int i,j;
 	// Set the number of vertices in the vertex array.
 	m_vertexCount = 4;
 
@@ -75,19 +76,38 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 	{
 		return false;
 	}
+
+	// сделать от 0 до 5, 6 поинтов, по ним понятно в какой позиции должна быть вершина для у квадрата из 2 треугольников,тип делишь 6 на Iтое и понимаешь, 
+	// потом сделать снова деление на 6 чтобы понимать какой по счету квадрат, и дальше понимать где его разместить
+	
+	for (i = 0, j = 0; i < 2; i=+2)
+	{
+			vertices[i].position = XMFLOAT3(i, j, 0.0f);
+			vertices[i].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+
+			vertices[i+1].position = XMFLOAT3(i, j+2, 0.0f);
+			vertices[i+1].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+
+			vertices[i+2].position = XMFLOAT3(i+2, j+2, 0.0f);
+			vertices[i+2].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+
+			vertices[i+3].position = XMFLOAT3(i+2, 0.0f, 0.0f);
+			vertices[i+3].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+	}
+
 	// Load the vertex array with data.
 
-	vertices[0].position = XMFLOAT3(-3.0f, 0.0f, 0.0f);  // Bottom left 1.
-	vertices[0].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+	//vertices[0].position = XMFLOAT3(-3.0f, 0.0f, 0.0f);  // Bottom left 1.
+	//vertices[0].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
-	vertices[1].position = XMFLOAT3(-3.0f, 3.0f, 0.0f);  // Top left 1.
-	vertices[1].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+	//vertices[1].position = XMFLOAT3(-3.0f, 3.0f, 0.0f);  // Top left 1.
+	//vertices[1].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
-	vertices[2].position = XMFLOAT3(0.0f, 3.0f, 0.0f);  // Top right 1.
-	vertices[2].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+	//vertices[2].position = XMFLOAT3(0.0f, 3.0f, 0.0f);  // Top right 1.
+	//vertices[2].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
-	vertices[3].position = XMFLOAT3(0.0f, 0.0f, 0.0f);  // Bottom right 1.
-	vertices[3].color = XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
+	//vertices[3].position = XMFLOAT3(0.0f, 0.0f, 0.0f);  // Bottom right 1.
+	//vertices[3].color = XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
 
 
 	// Load the index array with data.
