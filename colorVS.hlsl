@@ -17,7 +17,7 @@ struct VertexInputType
 {
     float4 position : POSITION;
     float4 color : COLOR;
-    int index;
+    //int index;
 };
 
 struct PixelInputType

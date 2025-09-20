@@ -56,12 +56,12 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc;
 	D3D11_SUBRESOURCE_DATA vertexData, indexData;
 	HRESULT result;
-	int i,j;
+	int i,j,k(0), n(20), n1(0);//допустим хочу 20 квадратов сделать
 	// Set the number of vertices in the vertex array.
-	m_vertexCount = 4;
+	m_vertexCount = n * 4;
 
 	// Set the number of indices in the index array.
-	m_indexCount = 6;
+	m_indexCount = n * 6;
 
 	// Create the vertex array.
 	vertices = new VertexType[m_vertexCount];
@@ -80,19 +80,35 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 	// сделать от 0 до 5, 6 поинтов, по ним понятно в какой позиции должна быть вершина для у квадрата из 2 треугольников,тип делишь 6 на Iтое и понимаешь, 
 	// потом сделать снова деление на 6 чтобы понимать какой по счету квадрат, и дальше понимать где его разместить
 	
-	for (i = 0, j = 0; i < 2; i=+2)
+	for (i = 0, j = 0; i < n * 4; i += 4, j += 6)
 	{
-			vertices[i].position = XMFLOAT3(i, j, 0.0f);
-			vertices[i].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+		vertices[i].position = XMFLOAT3(n1 * 4, 0.0f + k, 0.0f);
+		vertices[i].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
-			vertices[i+1].position = XMFLOAT3(i, j+2, 0.0f);
-			vertices[i+1].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+		vertices[i + 1].position = XMFLOAT3(n1 * 4, 4.0f + k, 0.0f);
+		vertices[i + 1].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
-			vertices[i+2].position = XMFLOAT3(i+2, j+2, 0.0f);
-			vertices[i+2].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+		vertices[i + 2].position = XMFLOAT3(n1 * 4 + 4, 4.0f + k, 0.0f);
+		vertices[i + 2].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
-			vertices[i+3].position = XMFLOAT3(i+2, 0.0f, 0.0f);
-			vertices[i+3].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+		vertices[i + 3].position = XMFLOAT3(n1 * 4 + 4, 0.0f + k, 0.0f);
+		vertices[i + 3].color = XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
+
+		indices[j] = i;
+		indices[j + 1] = i + 1;
+		indices[j + 2] = i + 2;
+
+		indices[j + 3] = i;
+		indices[j + 4] = i + 2;
+		indices[j + 5] = i + 3;
+
+		n1++;
+
+		if (n1 % 5 == 0)
+		{
+		k -= 4;
+		n1 = 0;
+		}
 	}
 
 	// Load the vertex array with data.
@@ -111,12 +127,13 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 
 
 	// Load the index array with data.
-	indices[0] = 0;  
+
+	/*indices[0] = 0;  
 	indices[1] = 1;  
 	indices[2] = 2;
 	indices[3] = 0;
 	indices[4] = 2;
-	indices[5] = 3;
+	indices[5] = 3;*/
 
 
 	// Set up the description of the static vertex buffer.
