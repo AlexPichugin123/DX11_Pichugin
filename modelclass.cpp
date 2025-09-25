@@ -56,7 +56,13 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc;
 	D3D11_SUBRESOURCE_DATA vertexData, indexData;
 	HRESULT result;
-	int i,j,k(0), n(20), n1(0);//допустим хочу 20 квадратов сделать
+
+	//////////////////////////////////////////////////////////////////////////////////
+	int i, j; // i и j количество вертексов и индексов для квадрата из 2 треугольников
+	float yOffset(0);
+	int n(18), countSquare(0), columns(4);//допустим хочу N квадратов сделать, и columns столбцов
+	//////////////////////////////////////////////////////////////////////////////////
+	
 	// Set the number of vertices in the vertex array.
 	m_vertexCount = n * 4;
 
@@ -77,21 +83,25 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 		return false;
 	}
 
-	// сделать от 0 до 5, 6 поинтов, по ним понятно в какой позиции должна быть вершина для у квадрата из 2 треугольников,тип делишь 6 на Iтое и понимаешь, 
+	// сделать от 0 до 5, 6 поинтов, по ним понятно в какой позиции должна быть вершина для квадрата из 2 треугольников,тип делишь 6 на Iтое и понимаешь, 
 	// потом сделать снова деление на 6 чтобы понимать какой по счету квадрат, и дальше понимать где его разместить
 	
-	for (i = 0, j = 0; i < n * 4; i += 4, j += 6)
+	for (
+		i = 0, j = 0; 
+		i < m_vertexCount;
+		i += 4, j += 6
+		)
 	{
-		vertices[i].position = XMFLOAT3(n1 * 4, 0.0f + k, 0.0f);
+		vertices[i].position = XMFLOAT3(countSquare * 4, 0.0f + yOffset, 0.0f);
 		vertices[i].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
-		vertices[i + 1].position = XMFLOAT3(n1 * 4, 4.0f + k, 0.0f);
+		vertices[i + 1].position = XMFLOAT3(countSquare * 4, 4.0f + yOffset, 0.0f);
 		vertices[i + 1].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
-		vertices[i + 2].position = XMFLOAT3(n1 * 4 + 4, 4.0f + k, 0.0f);
+		vertices[i + 2].position = XMFLOAT3(countSquare * 4 + 4, 4.0f + yOffset, 0.0f);
 		vertices[i + 2].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
-		vertices[i + 3].position = XMFLOAT3(n1 * 4 + 4, 0.0f + k, 0.0f);
+		vertices[i + 3].position = XMFLOAT3(countSquare * 4 + 4, 0.0f + yOffset, 0.0f);
 		vertices[i + 3].color = XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
 
 		indices[j] = i;
@@ -102,12 +112,12 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 		indices[j + 4] = i + 2;
 		indices[j + 5] = i + 3;
 
-		n1++;
+		countSquare++; //счетчик квадратов, так-же использую для X координат выше
 
-		if (n1 % 5 == 0)
+		if (countSquare % columns == 0) //%columns сколько квадратов в строке
 		{
-		k -= 4;
-		n1 = 0;
+		yOffset -= 4; //смещение по координатам вниз для новых строк
+		countSquare = 0;
 		}
 	}
 
