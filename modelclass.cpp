@@ -60,7 +60,7 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 	//////////////////////////////////////////////////////////////////////////////////
 	int i, j; // i и j количество вертексов и индексов для квадрата из 2 треугольников
 	float yOffset(0);
-	int n(18), countSquare(0), columns(6), counts(0);//допустим хочу N квадратов сделать, и columns столбцов
+	int n(24), countSquare(0), columns(6), counts(0);//допустим хочу N квадратов сделать, и columns столбцов
 	//////////////////////////////////////////////////////////////////////////////////
 
 	// Set the number of vertices in the vertex array.
@@ -129,10 +129,9 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 			countSquare = 0;
 		}
 	}
-
-	float angle = 360 / columns;
+	float angle = (360.f / (float)columns) * 3.141519 / 180.f;
 	double pi = atan(1) * 4;
-	float Radius = fabs(vertices[columns * 4 - 1].position.x - vertices[0].position.x) / (2 * pi);//////////////////////////
+	float Radius = 5; //fabs(vertices[columns * 4 - 1].position.x - vertices[0].position.x) / (2 * pi);//////////////////////////
 	int i1(0), j1(1);
 
 	for (i1; i1 < m_vertexCount; i1 += 4)
@@ -143,16 +142,15 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 		vertices[i1 + 1].position.x = cos(angle * j1) * Radius;
 		vertices[i1 + 1].position.z = sin(angle * j1) * Radius;
 
-		vertices[i1 + 2].position.x = cos(angle * (j1 + 1)) * Radius;
-		vertices[i1 + 2].position.z = sin(angle * (j1 + 1)) * Radius;
+		vertices[i1 + 2].position.x = cos(angle * j1 + 1) * Radius;
+		vertices[i1 + 2].position.z = sin(angle * j1 + 1) * Radius;
 
-		vertices[i1 + 3].position.x = cos(angle * (j1 + 1)) * Radius;
-		vertices[i1 + 3].position.z = sin(angle * (j1 + 1)) * Radius;
+		vertices[i1 + 3].position.x = cos(angle * j1 + 1) * Radius;
+		vertices[i1 + 3].position.z = sin(angle * j1 + 1) * Radius;
 
 		j1++;
-		if (j1 == columns + 1)
+		if (j1 == columns+1)
 			{
-		
 				j1 = 1;
 			}
 		}
