@@ -1,3 +1,5 @@
+//#define orig
+#ifdef orig
 ////////////////////////////////////////////////////////////////////////////////
 // Filename: modelclass.cpp
 ////////////////////////////////////////////////////////////////////////////////
@@ -129,24 +131,30 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 			countSquare = 0;
 		}
 	}
+
+	///////////////////////////цилиндр
 	float angle = (360.f / (float)columns) * 3.141519 / 180.f;
 	double pi = atan(1) * 4;
-	float Radius = 5; //fabs(vertices[columns * 4 - 1].position.x - vertices[0].position.x) / (2 * pi);//////////////////////////
+	float Radius = 10; //fabs(vertices[columns * 4 - 1].position.x - vertices[0].position.x) / (2 * pi);//////////////////////////
 	int i1(0), j1(1);
 
 	for (i1; i1 < m_vertexCount; i1 += 4)
 	{
 		vertices[i1 + 0].position.x = cos(angle * j1) * Radius;
 		vertices[i1 + 0].position.z = sin(angle * j1) * Radius;
+		
 
 		vertices[i1 + 1].position.x = cos(angle * j1) * Radius;
 		vertices[i1 + 1].position.z = sin(angle * j1) * Radius;
+		
 
-		vertices[i1 + 2].position.x = cos(angle * j1 + 1) * Radius;
-		vertices[i1 + 2].position.z = sin(angle * j1 + 1) * Radius;
+		vertices[i1 + 2].position.x = cos(angle * (j1 + 1)) * Radius;
+		vertices[i1 + 2].position.z = sin(angle * (j1 + 1)) * Radius;
+		
 
-		vertices[i1 + 3].position.x = cos(angle * j1 + 1) * Radius;
-		vertices[i1 + 3].position.z = sin(angle * j1 + 1) * Radius;
+		vertices[i1 + 3].position.x = cos(angle * (j1 + 1)) * Radius;
+		vertices[i1 + 3].position.z = sin(angle * (j1 + 1)) * Radius;
+		
 
 		j1++;
 		if (j1 == columns+1)
@@ -270,3 +278,232 @@ void ModelClass::RenderBuffers(ID3D11DeviceContext* deviceContext)
 
 	return;
 }
+#endif
+
+#define copy
+#ifdef copy
+////////////////////////////////////////////////////////////////////////////////
+// Filename: modelclass.cpp
+////////////////////////////////////////////////////////////////////////////////
+#include "modelclass.h"
+#include <cmath>
+
+ModelClass::ModelClass()
+{
+	m_vertexBuffer = 0;
+	m_indexBuffer = 0;
+}
+
+
+ModelClass::ModelClass(const ModelClass& other)
+{
+}
+
+
+ModelClass::~ModelClass()
+{
+}
+
+bool ModelClass::Initialize(ID3D11Device* device)
+{
+	bool result;
+
+	// Initialize the vertex and index buffers.
+	result = InitializeBuffers(device);
+	if (!result)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void ModelClass::Shutdown()
+{
+	// Shutdown the vertex and index buffers.
+	ShutdownBuffers();
+
+	return;
+}
+
+void ModelClass::Render(ID3D11DeviceContext* deviceContext)
+{
+	// Put the vertex and index buffers on the graphics pipeline to prepare them for drawing.
+	RenderBuffers(deviceContext);
+
+	return;
+}
+
+int ModelClass::GetIndexCount()
+{
+	return m_indexCount;
+}
+
+bool ModelClass::InitializeBuffers(ID3D11Device* device)
+{
+	VertexType* vertices;
+	unsigned long* indices;
+	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc;
+	D3D11_SUBRESOURCE_DATA vertexData, indexData;
+	HRESULT result;
+
+	// Параметры сферы
+	const float radius = 5.0f;
+	const int stacks = 10;    // Количество горизонтальных сегментов
+	const int slices = 10;    // Количество вертикальных сегментов
+
+	// Вычисляем количество вершин и индексов
+	m_vertexCount = (stacks + 1) * (slices + 1);
+	m_indexCount = stacks * slices * 6; // 2 треугольника на каждый квадрат
+
+	// Создаем массивы вершин и индексов
+	vertices = new VertexType[m_vertexCount];
+	if (!vertices)
+	{
+		return false;
+	}
+
+	indices = new unsigned long[m_indexCount];
+	if (!indices)
+	{
+		return false;
+	}
+
+	// Заполняем массив вершин
+	int vertexIndex = 0;
+	for (int stack = 0; stack <= stacks; stack++)
+	{
+		float phi = XM_PI * stack / stacks; // от 0 до ?
+		float y = radius * cos(phi);        // y координата
+
+		for (int slice = 0; slice <= slices; slice++)
+		{
+			float theta = 2 * XM_PI * slice / slices; // от 0 до 2?
+			float x = radius * sin(phi) * cos(theta); // x координата
+			float z = radius * sin(phi) * sin(theta); // z координата
+
+			vertices[vertexIndex].position = XMFLOAT3(x, y, z);
+
+			// Цвет в зависимости от положения на сфере
+			vertices[vertexIndex].color = XMFLOAT4(
+				(x + radius) / (2 * radius),  // R
+				(y + radius) / (2 * radius),  // G  
+				(z + radius) / (2 * radius),  // B
+				1.0f                          // A
+			);
+
+			vertexIndex++;
+		}
+	}
+
+	// Заполняем массив индексов
+	int indexIndex = 0;
+	for (int stack = 0; stack < stacks; stack++)
+	{
+		for (int slice = 0; slice < slices; slice++)
+		{
+			int first = stack * (slices + 1) + slice;
+			int second = first + slices + 1;
+
+			// Первый треугольник
+			indices[indexIndex++] = first;
+			indices[indexIndex++] = second;
+			indices[indexIndex++] = first + 1;
+
+			// Второй треугольник
+			indices[indexIndex++] = first + 1;
+			indices[indexIndex++] = second;
+			indices[indexIndex++] = second + 1;
+		}
+	}
+
+	// Set up the description of the static vertex buffer.
+	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	vertexBufferDesc.ByteWidth = sizeof(VertexType) * m_vertexCount;
+	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vertexBufferDesc.CPUAccessFlags = 0;
+	vertexBufferDesc.MiscFlags = 0;
+	vertexBufferDesc.StructureByteStride = 0;
+
+	// Give the subresource structure a pointer to the vertex data.
+	vertexData.pSysMem = vertices;
+	vertexData.SysMemPitch = 0;
+	vertexData.SysMemSlicePitch = 0;
+
+	// Now create the vertex buffer.
+	result = device->CreateBuffer(&vertexBufferDesc, &vertexData, &m_vertexBuffer);
+	if (FAILED(result))
+	{
+		return false;
+	}
+
+	// Set up the description of the static index buffer.
+	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	indexBufferDesc.ByteWidth = sizeof(unsigned long) * m_indexCount;
+	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexBufferDesc.CPUAccessFlags = 0;
+	indexBufferDesc.MiscFlags = 0;
+	indexBufferDesc.StructureByteStride = 0;
+
+	// Give the subresource structure a pointer to the index data.
+	indexData.pSysMem = indices;
+	indexData.SysMemPitch = 0;
+	indexData.SysMemSlicePitch = 0;
+
+	// Create the index buffer.
+	result = device->CreateBuffer(&indexBufferDesc, &indexData, &m_indexBuffer);
+	if (FAILED(result))
+	{
+		return false;
+	}
+
+	// Release the arrays now that the vertex and index buffers have been created and loaded.
+	delete[] vertices;
+	vertices = 0;
+
+	delete[] indices;
+	indices = 0;
+
+	return true;
+}
+
+void ModelClass::ShutdownBuffers()
+{
+	// Release the index buffer.
+	if (m_indexBuffer)
+	{
+		m_indexBuffer->Release();
+		m_indexBuffer = 0;
+	}
+
+	// Release the vertex buffer.
+	if (m_vertexBuffer)
+	{
+		m_vertexBuffer->Release();
+		m_vertexBuffer = 0;
+	}
+
+	return;
+}
+
+void ModelClass::RenderBuffers(ID3D11DeviceContext* deviceContext)
+{
+	unsigned int stride;
+	unsigned int offset;
+
+	// Set vertex buffer stride and offset.
+	stride = sizeof(VertexType);
+	offset = 0;
+
+	// Set the vertex buffer to active in the input assembler so it can be rendered.
+	deviceContext->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
+
+	// Set the index buffer to active in the input assembler so it can be rendered.
+	deviceContext->IASetIndexBuffer(m_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+	// Set the type of primitive that should be rendered from this vertex buffer, in this case triangles.
+	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	return;
+}
+#endif

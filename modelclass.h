@@ -34,16 +34,21 @@ public:
 	bool Initialize(ID3D11Device*);
 	void Shutdown();
 	void Render(ID3D11DeviceContext*);
-
+	void RenderWireframe(ID3D11DeviceContext*);
 	int GetIndexCount();
-
+	int GetWireframeIndexCount();
+	ID3D11Buffer* GetWireframeIndexBuffer();
 private:
 	bool InitializeBuffers(ID3D11Device*);
 	void ShutdownBuffers();
 	void RenderBuffers(ID3D11DeviceContext*);
 private:
-	ID3D11Buffer* m_vertexBuffer, * m_indexBuffer;
-	int m_vertexCount, m_indexCount;
+	ID3D11Buffer* m_vertexBuffer;
+    ID3D11Buffer* m_indexBuffer;
+    ID3D11Buffer* m_wireframeIndexBuffer;
+    int m_vertexCount;
+    int m_indexCount;
+    int m_wireframeIndexCount;
 };
 
 #endif
