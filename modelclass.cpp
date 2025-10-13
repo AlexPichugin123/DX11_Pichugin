@@ -1,4 +1,4 @@
-//#define orig
+//#define WALL
 #ifdef orig
 ////////////////////////////////////////////////////////////////////////////////
 // Filename: modelclass.cpp
@@ -279,9 +279,9 @@ void ModelClass::RenderBuffers(ID3D11DeviceContext* deviceContext)
 	return;
 }
 #endif
-
-#define copy
-#ifdef copy
+//////////////////////////////////////////
+//#define Copy
+#ifdef Copy
 ////////////////////////////////////////////////////////////////////////////////
 // Filename: modelclass.cpp
 ////////////////////////////////////////////////////////////////////////////////
@@ -369,7 +369,7 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 		return false;
 	}
 
-	// Заполняем массив вершин
+	// Заполнение вертексов
 	int vertexIndex = 0;
 	for (int stack = 0; stack <= stacks; stack++)
 	{
@@ -396,7 +396,7 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 		}
 	}
 
-	// Заполняем массив индексов
+	// Заполнение индексов
 	int indexIndex = 0;
 	for (int stack = 0; stack < stacks; stack++)
 	{
@@ -417,6 +417,235 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 		}
 	}
 
+	// Set up the description of the static vertex buffer.
+	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	vertexBufferDesc.ByteWidth = sizeof(VertexType) * m_vertexCount;
+	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vertexBufferDesc.CPUAccessFlags = 0;
+	vertexBufferDesc.MiscFlags = 0;
+	vertexBufferDesc.StructureByteStride = 0;
+
+	// Give the subresource structure a pointer to the vertex data.
+	vertexData.pSysMem = vertices;
+	vertexData.SysMemPitch = 0;
+	vertexData.SysMemSlicePitch = 0;
+
+	// Now create the vertex buffer.
+	result = device->CreateBuffer(&vertexBufferDesc, &vertexData, &m_vertexBuffer);
+	if (FAILED(result))
+	{
+		return false;
+	}
+
+	// Set up the description of the static index buffer.
+	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	indexBufferDesc.ByteWidth = sizeof(unsigned long) * m_indexCount;
+	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexBufferDesc.CPUAccessFlags = 0;
+	indexBufferDesc.MiscFlags = 0;
+	indexBufferDesc.StructureByteStride = 0;
+
+	// Give the subresource structure a pointer to the index data.
+	indexData.pSysMem = indices;
+	indexData.SysMemPitch = 0;
+	indexData.SysMemSlicePitch = 0;
+
+	// Create the index buffer.
+	result = device->CreateBuffer(&indexBufferDesc, &indexData, &m_indexBuffer);
+	if (FAILED(result))
+	{
+		return false;
+	}
+
+	// Release the arrays now that the vertex and index buffers have been created and loaded.
+	delete[] vertices;
+	vertices = 0;
+
+	delete[] indices;
+	indices = 0;
+
+	return true;
+}
+
+void ModelClass::ShutdownBuffers()
+{
+	// Release the index buffer.
+	if (m_indexBuffer)
+	{
+		m_indexBuffer->Release();
+		m_indexBuffer = 0;
+	}
+
+	// Release the vertex buffer.
+	if (m_vertexBuffer)
+	{
+		m_vertexBuffer->Release();
+		m_vertexBuffer = 0;
+	}
+
+	return;
+}
+
+void ModelClass::RenderBuffers(ID3D11DeviceContext* deviceContext)
+{
+	unsigned int stride;
+	unsigned int offset;
+
+	// Set vertex buffer stride and offset.
+	stride = sizeof(VertexType);
+	offset = 0;
+
+	// Set the vertex buffer to active in the input assembler so it can be rendered.
+	deviceContext->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
+
+	// Set the index buffer to active in the input assembler so it can be rendered.
+	deviceContext->IASetIndexBuffer(m_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+	// Set the type of primitive that should be rendered from this vertex buffer, in this case triangles.
+	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	return;
+}
+#endif
+/////////////////////////////////////////
+#define TOR
+#ifdef TOR
+#include "modelclass.h"
+#include <cmath>
+
+ModelClass::ModelClass()
+{
+	m_vertexBuffer = 0;
+	m_indexBuffer = 0;
+}
+
+
+ModelClass::ModelClass(const ModelClass& other)
+{
+}
+
+
+ModelClass::~ModelClass()
+{
+}
+
+bool ModelClass::Initialize(ID3D11Device* device)
+{
+	bool result;
+
+	// Initialize the vertex and index buffers.
+	result = InitializeBuffers(device);
+	if (!result)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void ModelClass::Shutdown()
+{
+	// Shutdown the vertex and index buffers.
+	ShutdownBuffers();
+
+	return;
+}
+
+void ModelClass::Render(ID3D11DeviceContext* deviceContext)
+{
+	// Put the vertex and index buffers on the graphics pipeline to prepare them for drawing.
+	RenderBuffers(deviceContext);
+
+	return;
+}
+
+int ModelClass::GetIndexCount()
+{
+	return m_indexCount;
+}
+
+bool ModelClass::InitializeBuffers(ID3D11Device* device)
+{
+	VertexType* vertices;
+	unsigned long* indices;
+	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc;
+	D3D11_SUBRESOURCE_DATA vertexData, indexData;
+	HRESULT result;
+
+	// Параметры тора (бублика)
+	const float majorRadius = 9.0f;  // Расстояние от центра тора до центра трубки
+	const float minorRadius = 4.0f;  // Радиус трубки
+	const int majorSegments = 50;    // Количество сегментов по большому кругу
+	const int minorSegments = 20;    // Количество сегментов по малому кругу
+
+	// Вычисляем количество вершин и индексов
+	m_vertexCount = (majorSegments + 1) * (minorSegments + 1);
+	m_indexCount = majorSegments * minorSegments * 6; // 2 треугольника на каждый квадрат
+
+	// Создаем массивы вершин и индексов
+	vertices = new VertexType[m_vertexCount];
+	if (!vertices)
+	{
+		return false;
+	}
+
+	indices = new unsigned long[m_indexCount];
+	if (!indices)
+	{
+		return false;
+	}
+
+	// Заполнение вертексов для тора
+	int vertexIndex = 0;
+	for (int i = 0; i <= majorSegments; i++)
+	{
+		float u = 2 * XM_PI * i / majorSegments; // Угол по большому кругу
+
+		for (int j = 0; j <= minorSegments; j++)
+		{
+			float v = 2 * XM_PI * j / minorSegments; // Угол по малому кругу
+
+			// Вычисляем позицию вершины на торе
+			float x = (majorRadius + minorRadius * cos(v)) * cos(u);
+			float y = minorRadius * sin(v);
+			float z = (majorRadius + minorRadius * cos(v)) * sin(u);
+
+			vertices[vertexIndex].position = XMFLOAT3(x, y, z);
+
+			// Цвет в зависимости от положения на торе
+			vertices[vertexIndex].color = XMFLOAT4(
+				(float)i / majorSegments,      // R
+				(float)j / minorSegments,      // G  
+				(u + XM_PI) / (2 * XM_PI),    // B
+				1.0f                          // A
+			);
+
+			vertexIndex++;
+		}
+	}
+
+	// Заполнение индексов
+	int indexIndex = 0;
+	for (int i = 0; i < majorSegments; i++)
+	{
+		for (int j = 0; j < minorSegments; j++)
+		{
+			int first = i * (minorSegments + 1) + j;
+			int second = first + minorSegments + 1;
+
+			// Первый треугольник
+			indices[indexIndex++] = first;
+			indices[indexIndex++] = second;
+			indices[indexIndex++] = first + 1;
+
+			// Второй треугольник
+			indices[indexIndex++] = first + 1;
+			indices[indexIndex++] = second;
+			indices[indexIndex++] = second + 1;
+		}
+	}
+
+	// Остальная часть кода остается без изменений...
 	// Set up the description of the static vertex buffer.
 	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	vertexBufferDesc.ByteWidth = sizeof(VertexType) * m_vertexCount;
