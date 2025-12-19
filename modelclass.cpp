@@ -1,5 +1,9 @@
-//#define WALL
-#ifdef orig
+//#define Cilinder
+//#define Sphere
+//#define TOR
+#define TORUS_KNOT
+
+#ifdef Cilinder
 ////////////////////////////////////////////////////////////////////////////////
 // Filename: modelclass.cpp
 ////////////////////////////////////////////////////////////////////////////////
@@ -280,8 +284,7 @@ void ModelClass::RenderBuffers(ID3D11DeviceContext* deviceContext)
 }
 #endif
 //////////////////////////////////////////
-//#define Copy
-#ifdef Copy
+#ifdef Sphere
 ////////////////////////////////////////////////////////////////////////////////
 // Filename: modelclass.cpp
 ////////////////////////////////////////////////////////////////////////////////
@@ -507,8 +510,7 @@ void ModelClass::RenderBuffers(ID3D11DeviceContext* deviceContext)
 	return;
 }
 #endif
-/////////////////////////////////////////
-#define TOR
+//////////////////////////////////////////
 #ifdef TOR
 #include "modelclass.h"
 #include <cmath>
@@ -577,7 +579,9 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 	const float minorRadius = 4.0f;  // Радиус трубки
 	const int majorSegments = 50;    // Количество сегментов по большому кругу
 	const int minorSegments = 20;    // Количество сегментов по малому кругу
-
+	const int p = 3;                 // Кол-во оборотов вокруг маленького радиуса
+	const int q = -8;                // Кол-во оборотов вокруг большого радиуса
+	
 	// Вычисляем количество вершин и индексов
 	m_vertexCount = (majorSegments + 1) * (minorSegments + 1);
 	m_indexCount = majorSegments * minorSegments * 6; // 2 треугольника на каждый квадрат
@@ -609,6 +613,10 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 			float x = (majorRadius + minorRadius * cos(v)) * cos(u);
 			float y = minorRadius * sin(v);
 			float z = (majorRadius + minorRadius * cos(v)) * sin(u);
+
+			//float x = (majorRadius + minorRadius * cos(v)) * cos(u);
+			//float y = (majorRadius + minorRadius * cos(v)) * sin(u);
+			//float z = minorRadius * sin(v);
 
 			vertices[vertexIndex].position = XMFLOAT3(x, y, z);
 
@@ -683,6 +691,294 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 	result = device->CreateBuffer(&indexBufferDesc, &indexData, &m_indexBuffer);
 	if (FAILED(result))
 	{
+		return false;
+	}
+
+	// Release the arrays now that the vertex and index buffers have been created and loaded.
+	delete[] vertices;
+	vertices = 0;
+
+	delete[] indices;
+	indices = 0;
+
+	return true;
+}
+
+void ModelClass::ShutdownBuffers()
+{
+	// Release the index buffer.
+	if (m_indexBuffer)
+	{
+		m_indexBuffer->Release();
+		m_indexBuffer = 0;
+	}
+
+	// Release the vertex buffer.
+	if (m_vertexBuffer)
+	{
+		m_vertexBuffer->Release();
+		m_vertexBuffer = 0;
+	}
+
+	return;
+}
+
+void ModelClass::RenderBuffers(ID3D11DeviceContext* deviceContext)
+{
+	unsigned int stride;
+	unsigned int offset;
+
+	// Set vertex buffer stride and offset.
+	stride = sizeof(VertexType);
+	offset = 0;
+
+	// Set the vertex buffer to active in the input assembler so it can be rendered.
+	deviceContext->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
+
+	// Set the index buffer to active in the input assembler so it can be rendered.
+	deviceContext->IASetIndexBuffer(m_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+	// Set the type of primitive that should be rendered from this vertex buffer, in this case triangles.
+	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	return;
+}
+#endif
+//////////////////////////////////////////
+#ifdef TORUS_KNOT
+#include "modelclass.h"
+#include <cmath>
+
+ModelClass::ModelClass()
+{
+	m_vertexBuffer = 0;
+	m_indexBuffer = 0;
+}
+
+ModelClass::ModelClass(const ModelClass& other)
+{
+}
+
+ModelClass::~ModelClass()
+{
+}
+
+bool ModelClass::Initialize(ID3D11Device* device)
+{
+	bool result;
+
+	// Initialize the vertex and index buffers.
+	result = InitializeBuffers(device);
+	if (!result)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void ModelClass::Shutdown()
+{
+	// Shutdown the vertex and index buffers.
+	ShutdownBuffers();
+
+	return;
+}
+
+void ModelClass::Render(ID3D11DeviceContext* deviceContext)
+{
+	// Put the vertex and index buffers on the graphics pipeline to prepare them for drawing.
+	RenderBuffers(deviceContext);
+
+	return;
+}
+
+int ModelClass::GetIndexCount()
+{
+	return m_indexCount;
+}
+
+bool ModelClass::InitializeBuffers(ID3D11Device* device)
+{
+	VertexType* vertices;
+	unsigned long* indices;
+	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc;
+	D3D11_SUBRESOURCE_DATA vertexData, indexData;
+	HRESULT result;
+
+	// Параметры торального узла (torus knot)
+	const float R = 6.0f;           // Большой радиус тора (расстояние от центра до центра трубки)
+	const float r = 0.6f;           // Малый радиус трубки
+	const int p = 2;                // Первое число узла (оборотов вокруг большого круга)
+	const int q = 3;                // Второе число узла (оборотов вокруг малого круга)
+	const int numSegments = 100;    // Количество сегментов вдоль кривой узла
+	const int tubeSegments = 16;    // Количество сегментов вокруг трубки
+
+	// Параметры для увеличения детализации
+	const float tubeRadius = r;     // Радиус трубки узла
+
+	// Вычисляем количество вершин и индексов
+	m_vertexCount = (numSegments + 1) * (tubeSegments + 1);
+	m_indexCount = numSegments * tubeSegments * 6; // 2 треугольника на каждый четырехугольник
+
+	// Создаем массивы вершин и индексов
+	vertices = new VertexType[m_vertexCount];
+	if (!vertices)
+	{
+		return false;
+	}
+
+	indices = new unsigned long[m_indexCount];
+	if (!indices)
+	{
+		return false;
+	}
+
+	// Функция для вычисления позиции на кривой узла
+	auto torusKnotPosition = [R, p, q](float t, XMFLOAT3& position, XMFLOAT3& tangent, XMFLOAT3& normal) {
+		// Основная кривая торального узла
+		float x = (R + cos(q * t)) * cos(p * t);
+		float y = (R + cos(q * t)) * sin(p * t);
+		float z = sin(q * t);
+
+		position = XMFLOAT3(x, y, z);
+
+		// Вычисляем касательную (производную)
+		float dx_dt = -p * (R + cos(q * t)) * sin(p * t) - q * sin(q * t) * cos(p * t);
+		float dy_dt = p * (R + cos(q * t)) * cos(p * t) - q * sin(q * t) * sin(p * t);
+		float dz_dt = q * cos(q * t);
+
+		tangent = XMFLOAT3(dx_dt, dy_dt, dz_dt);
+
+		// Нормализуем касательную
+		float length = sqrt(dx_dt * dx_dt + dy_dt * dy_dt + dz_dt * dz_dt);
+		if (length > 0.0001f) {
+			tangent.x /= length;
+			tangent.y /= length;
+			tangent.z /= length;
+		}
+
+		// Вычисляем бинормаль (примерное направление вверх)
+		XMFLOAT3 up(0, 0, 1);
+		normal = XMFLOAT3(
+			up.y * tangent.z - up.z * tangent.y,
+			up.z * tangent.x - up.x * tangent.z,
+			up.x * tangent.y - up.y * tangent.x
+		);
+
+		// Нормализуем нормаль
+		length = sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+		if (length > 0.0001f) {
+			normal.x /= length;
+			normal.y /= length;
+			normal.z /= length;
+		}
+		};
+
+	// Заполнение вершин для торального узла
+	int vertexIndex = 0;
+	for (int i = 0; i <= numSegments; i++)
+	{
+		float t = 2 * XM_PI * i / numSegments; // Параметр вдоль кривой
+
+		XMFLOAT3 centerPos, tangent, normal;
+		torusKnotPosition(t, centerPos, tangent, normal);
+
+		// Второй вектор для построения окружности вокруг трубки
+		XMFLOAT3 binormal;
+		binormal.x = tangent.y * normal.z - tangent.z * normal.y;
+		binormal.y = tangent.z * normal.x - tangent.x * normal.z;
+		binormal.z = tangent.x * normal.y - tangent.y * normal.x;
+
+		for (int j = 0; j <= tubeSegments; j++)
+		{
+			float phi = 2 * XM_PI * j / tubeSegments; // Угол вокруг трубки
+
+			// Вычисляем позицию вершины на трубке
+			float cosPhi = cos(phi);
+			float sinPhi = sin(phi);
+
+			float x = centerPos.x + tubeRadius * (cosPhi * normal.x + sinPhi * binormal.x);
+			float y = centerPos.y + tubeRadius * (cosPhi * normal.y + sinPhi * binormal.y);
+			float z = centerPos.z + tubeRadius * (cosPhi * normal.z + sinPhi * binormal.z);
+
+			vertices[vertexIndex].position = XMFLOAT3(x, y, z);
+
+			// Цвет в зависимости от положения на узле
+			float hue = t / (2 * XM_PI);
+			vertices[vertexIndex].color = XMFLOAT4(
+				0.5f + 0.5f * sin(hue * 2 * XM_PI),          // R
+				0.5f + 0.5f * sin(hue * 2 * XM_PI + 2),     // G
+				0.5f + 0.5f * sin(hue * 2 * XM_PI + 4),     // B
+				1.0f                                        // A
+			);
+
+			vertexIndex++;
+		}
+	}
+
+	// Заполнение индексов
+	int indexIndex = 0;
+	for (int i = 0; i < numSegments; i++)
+	{
+		for (int j = 0; j < tubeSegments; j++)
+		{
+			int first = i * (tubeSegments + 1) + j;
+			int second = first + tubeSegments + 1;
+
+			// Первый треугольник
+			indices[indexIndex++] = first;
+			indices[indexIndex++] = second;
+			indices[indexIndex++] = first + 1;
+
+			// Второй треугольник
+			indices[indexIndex++] = first + 1;
+			indices[indexIndex++] = second;
+			indices[indexIndex++] = second + 1;
+		}
+	}
+
+	// Set up the description of the static vertex buffer.
+	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	vertexBufferDesc.ByteWidth = sizeof(VertexType) * m_vertexCount;
+	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vertexBufferDesc.CPUAccessFlags = 0;
+	vertexBufferDesc.MiscFlags = 0;
+	vertexBufferDesc.StructureByteStride = 0;
+
+	// Give the subresource structure a pointer to the vertex data.
+	vertexData.pSysMem = vertices;
+	vertexData.SysMemPitch = 0;
+	vertexData.SysMemSlicePitch = 0;
+
+	// Now create the vertex buffer.
+	result = device->CreateBuffer(&vertexBufferDesc, &vertexData, &m_vertexBuffer);
+	if (FAILED(result))
+	{
+		delete[] vertices;
+		delete[] indices;
+		return false;
+	}
+
+	// Set up the description of the static index buffer.
+	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	indexBufferDesc.ByteWidth = sizeof(unsigned long) * m_indexCount;
+	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexBufferDesc.CPUAccessFlags = 0;
+	indexBufferDesc.MiscFlags = 0;
+	indexBufferDesc.StructureByteStride = 0;
+
+	// Give the subresource structure a pointer to the index data.
+	indexData.pSysMem = indices;
+	indexData.SysMemPitch = 0;
+	indexData.SysMemSlicePitch = 0;
+
+	// Create the index buffer.
+	result = device->CreateBuffer(&indexBufferDesc, &indexData, &m_indexBuffer);
+	if (FAILED(result))
+	{
+		delete[] vertices;
+		delete[] indices;
 		return false;
 	}
 
